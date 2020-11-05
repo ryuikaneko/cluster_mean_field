@@ -52,25 +52,26 @@ def make_Hx_list(Lx,Ly):
     return list_Hx_site1
 
 def make_Hz_list(Lx,Ly):
-    list_Hz_site1 = [] # corners: 4 points --> Hz += -2*J*mz
-    list_Hz_site2 = [] # edges: 2*(Lx-2)+2*(Ly-2) points --> Hz += -J*mz
-    list_Hz_site3 = [] # others: (L-2)^2 points --> Hz += 0
+    list_Hz_site1 = [i for i in range(Lx*Ly)]
+    list_Hz1_site1 = [] # corners: 4 points --> Hz += -2*J*mz
+    list_Hz2_site1 = [] # edges: 2*(Lx-2)+2*(Ly-2) points --> Hz += -J*mz
+    list_Hz3_site1 = [] # others: (L-2)^2 points --> Hz += 0
     for y in [0,Ly-1]:
         for x in [0,Lx-1]:
-            list_Hz_site1.append(Lx*y+x)
+            list_Hz1_site1.append(Lx*y+x)
     for y in [0,Ly-1]:
         for x in range(1,Lx-1):
-            list_Hz_site2.append(Lx*y+x)
+            list_Hz2_site1.append(Lx*y+x)
     for y in range(1,Ly-1):
         for x in [0,Lx-1]:
-            list_Hz_site2.append(Lx*y+x)
+            list_Hz2_site1.append(Lx*y+x)
     for y in range(1,Ly-1):
         for x in range(1,Lx-1):
-            list_Hz_site3.append(Lx*y+x)
-    return list_Hz_site1, list_Hz_site2, list_Hz_site3
+            list_Hz3_site1.append(Lx*y+x)
+    return list_Hz_site1, list_Hz1_site1, list_Hz2_site1, list_Hz3_site1
 
 def make_hamiltonian(S0,Sx,Sy,Sz,Ns,list_Jz_site1,list_Jz_site2,\
-    list_Hz_site1,list_Hz_site2,list_Hz_site3,list_Hx_site1):
+    list_Hz_site1,list_Hz1_site1,list_Hz2_site1,list_Hz3_site1,list_Hx_site1):
 #
     list_SzSz = []
     list_Sz = []
@@ -79,10 +80,7 @@ def make_hamiltonian(S0,Sx,Sy,Sz,Ns,list_Jz_site1,list_Jz_site2,\
     list_Sz_3 = []
     list_Sx = []
 #
-    Nlist = len(list_Jz_site1)
-    for ind in range(Nlist):
-        i1 = list_Jz_site1[ind]
-        i2 = list_Jz_site2[ind]
+    for i1,i2 in zip(list_Jz_site1,list_Jz_site2):
         SzSz = 1
         for site in range(Ns):
             if site==i1 or site==i2:
@@ -91,51 +89,46 @@ def make_hamiltonian(S0,Sx,Sy,Sz,Ns,list_Jz_site1,list_Jz_site2,\
                 SzSz = scipy.sparse.kron(SzSz,S0,format='csr')
         list_SzSz.append(SzSz)
 #
-    Nlist = len(list_Hz_site1) + len(list_Hz_site2) + len(list_Hz_site3)
-    for ind in range(Nlist):
+    for i1 in list_Hz_site1:
         S0Sz = 1
         for site in range(Ns):
-            if site==ind:
+            if site==i1:
                 S0Sz = scipy.sparse.kron(S0Sz,Sz,format='csr')
             else:
                 S0Sz = scipy.sparse.kron(S0Sz,S0,format='csr')
         list_Sz.append(S0Sz)
 #
-    Nlist = len(list_Hz_site1)
-    for ind in range(Nlist):
+    for i1 in list_Hz1_site1:
         S0Sz = 1
         for site in range(Ns):
-            if site==ind:
+            if site==i1:
                 S0Sz = scipy.sparse.kron(S0Sz,Sz,format='csr')
             else:
                 S0Sz = scipy.sparse.kron(S0Sz,S0,format='csr')
         list_Sz_1.append(S0Sz)
 #
-    Nlist = len(list_Hz_site2)
-    for ind in range(Nlist):
+    for i1 in list_Hz2_site1:
         S0Sz = 1
         for site in range(Ns):
-            if site==ind:
+            if site==i1:
                 S0Sz = scipy.sparse.kron(S0Sz,Sz,format='csr')
             else:
                 S0Sz = scipy.sparse.kron(S0Sz,S0,format='csr')
         list_Sz_2.append(S0Sz)
 #
-    Nlist = len(list_Hz_site3)
-    for ind in range(Nlist):
+    for i1 in list_Hz3_site1:
         S0Sz = 1
         for site in range(Ns):
-            if site==ind:
+            if site==i1:
                 S0Sz = scipy.sparse.kron(S0Sz,Sz,format='csr')
             else:
                 S0Sz = scipy.sparse.kron(S0Sz,S0,format='csr')
         list_Sz_3.append(S0Sz)
 #
-    Nlist = len(list_Hx_site1)
-    for ind in range(Nlist):
+    for i1 in list_Hx_site1:
         S0Sx = 1
         for site in range(Ns):
-            if site==ind:
+            if site==i1:
                 S0Sx = scipy.sparse.kron(S0Sx,Sx,format='csr')
             else:
                 S0Sx = scipy.sparse.kron(S0Sx,S0,format='csr')
@@ -162,25 +155,25 @@ def calc_mag(list_Sz,list_Sx,vec):
 def self_consistent_loop(list_SzSz,list_Sz,list_Sz_1,list_Sz_2,list_Sz_3,list_Sx,Jz,Hz,Hx):
     mz0 = 0.5 # initial guess
     mx0 = 0.0
-    Hz0 = Hz - 2.0*Jz*mz0
-    Hz1 = Hz - 1.0*Jz*mz0
-    Hz2 = Hz
+    Hz1 = Hz - 2.0*Jz*mz0
+    Hz2 = Hz - 1.0*Jz*mz0
+    Hz3 = Hz
     Nsteps = 1000
 #    Nsteps = 100
     mageps = 1e-14
 #    mageps = 1e-10
     for step in range(Nsteps):
         Ham = make_sum_hamiltonian(list_SzSz,list_Sz_1,list_Sz_2,list_Sz_3,list_Sx,\
-            Jz,Hz0,Hz1,Hz2,Hx)
+            Jz,Hz1,Hz2,Hz3,Hx)
         ene, vec = scipy.sparse.linalg.eigsh(Ham,k=1)
         list_mz, list_mx, mz, mx = calc_mag(list_Sz,list_Sx,vec[:,0])
         mzerr = np.abs(mz-mz0)
         mxerr = np.abs(mx-mx0)
 #        print("# step,mz0,mz,mzerr",step,mz0,mz,mzerr)
         mz0 = mz
-        Hz0 = Hz - 2.0*Jz*mz0
-        Hz1 = Hz - 1.0*Jz*mz0
-        Hz2 = Hz
+        Hz1 = Hz - 2.0*Jz*mz0
+        Hz2 = Hz - 1.0*Jz*mz0
+        Hz3 = Hz
         mx0 = mx
         if mzerr < mageps and mxerr < mageps:
             break
@@ -209,22 +202,22 @@ def main():
     print("# Nbond",Nbond)
     list_Hx_site1 = make_Hx_list(Lx,Ly)
     print("# list_Hx_site1",list_Hx_site1)
-    list_Hz_site1, list_Hz_site2, list_Hz_site3 = make_Hz_list(Lx,Ly)
+    list_Hz_site1, list_Hz1_site1, list_Hz2_site1, list_Hz3_site1 = make_Hz_list(Lx,Ly)
     print("# list_Hz_site1",list_Hz_site1)
-    print("# list_Hz_site2",list_Hz_site2)
-    print("# list_Hz_site3",list_Hz_site3)
+    print("# list_Hz1_site1",list_Hz1_site1)
+    print("# list_Hz2_site1",list_Hz2_site1)
+    print("# list_Hz3_site1",list_Hz3_site1)
     end = time.time()
     print("## time: make interaction",end-start)
 
     start = time.time()
     list_SzSz, list_Sz, list_Sz_1, list_Sz_2, list_Sz_3, list_Sx = \
         make_hamiltonian(S0,Sx,Sy,Sz,Ns,list_Jz_site1,list_Jz_site2,\
-        list_Hz_site1,list_Hz_site2,list_Hz_site3,list_Hx_site1)
+        list_Hz_site1,list_Hz1_site1,list_Hz2_site1,list_Hz3_site1,list_Hx_site1)
     end = time.time()
     print("## time: make each Hamiltonian",end-start)
 
-#    Hxs = np.linspace(0.0,4.0,41)
-    Hxs = np.linspace(3.4,3.7,31)
+    Hxs = np.linspace(0.0,4.0,41)
 
     for Hx in Hxs:
         start = time.time()
